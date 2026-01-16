@@ -1,5 +1,5 @@
 ################################################################################
-#### DELAWARE RIVER BASIN PFAS APP - COMPLETE PYTHON/STREAMLIT PORT
+#### DELAWARE RIVER BASIN PFAS APP - CLEAN PROFESSIONAL DESIGN
 ################################################################################
 
 import streamlit as st
@@ -24,79 +24,165 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for beautiful styling
+# Clean, professional CSS
 st.markdown("""
 <style>
+    /* Main background - clean white */
     .main {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background-color: #ffffff;
     }
-    .header-container {
-        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-        padding: 2rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .header-title {
-        color: white;
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-    }
+
+    /* Sidebar - professional dark blue */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #2c3e50 0%, #3498db 100%);
+        background-color: #1a3a52;
     }
-    [data-testid="stSidebar"] * {
-        color: white !important;
+
+    [data-testid="stSidebar"] .stMarkdown {
+        color: #ffffff;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: rgba(255,255,255,0.1);
-        padding: 0.5rem;
-        border-radius: 10px;
+
+    /* Make sidebar text readable */
+    [data-testid="stSidebar"] label {
+        color: #ffffff !important;
     }
-    .stTabs [data-baseweb="tab"] {
-        background-color: rgba(255,255,255,0.8);
+
+    [data-testid="stSidebar"] .stSelectbox label,
+    [data-testid="stSidebar"] .stRadio label,
+    [data-testid="stSidebar"] .stSlider label {
+        color: #ffffff !important;
+    }
+
+    /* Header styling - clean and professional */
+    .main-header {
+        background-color: #1a3a52;
+        padding: 2rem 2rem 1.5rem 2rem;
         border-radius: 8px;
-        padding: 0.5rem 1rem;
+        margin-bottom: 2rem;
+        border-left: 5px solid #2e7aaf;
+    }
+
+    .main-header h1 {
+        color: #ffffff;
+        font-size: 2.2rem;
         font-weight: 600;
-        color: #1e3c72;
+        margin: 0;
+        letter-spacing: -0.5px;
     }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-        color: white !important;
+
+    .main-header p {
+        color: #b8d4e8;
+        font-size: 1rem;
+        margin: 0.5rem 0 0 0;
     }
-    .info-box {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        color: white;
-        margin: 1rem 0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .note-box {
-        background: rgba(255,255,255,0.9);
-        border-left: 4px solid #3498db;
-        padding: 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
+
+    /* Metric cards - clean with subtle shadow */
     [data-testid="stMetricValue"] {
-        font-size: 2rem;
-        font-weight: 700;
-        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #1a3a52;
     }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem;
+        color: #666666;
+        font-weight: 500;
+    }
+
+    /* Tab styling - minimal and clean */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px;
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border-radius: 6px;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        background-color: transparent;
+        border-radius: 4px;
+        padding: 0.5rem 1.5rem;
+        font-weight: 500;
+        color: #495057;
+        border: none;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: #1a3a52;
+        color: #ffffff !important;
+    }
+
+    /* Info boxes - clean with good contrast */
+    .info-card {
+        background-color: #f0f7fc;
+        border-left: 4px solid #2e7aaf;
+        padding: 1.5rem;
+        border-radius: 6px;
+        margin: 1rem 0;
+    }
+
+    .info-card h3 {
+        color: #1a3a52;
+        margin: 0 0 0.5rem 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+
+    .info-card p {
+        color: #495057;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* Note boxes */
+    .note-box {
+        background-color: #fff8e1;
+        border-left: 4px solid #ffc107;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+        color: #856404;
+    }
+
+    .note-box strong {
+        color: #6d5100;
+    }
+
+    /* Warning boxes */
+    .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+        color: #856404;
+    }
+
+    /* Tables - clean styling */
+    .dataframe {
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+
+    /* Footer - professional */
     .footer {
-        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-        color: white;
+        background-color: #f8f9fa;
+        border-top: 2px solid #1a3a52;
         padding: 2rem;
-        border-radius: 10px;
+        border-radius: 6px;
         margin-top: 3rem;
         text-align: center;
+        color: #495057;
+    }
+
+    /* Better spacing */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    /* Plotly chart containers */
+    .js-plotly-plot {
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -260,47 +346,43 @@ agencies = sorted(set().union(*[
     for media in all_data.keys()
 ]))
 
-# HEADER
+# HEADER - Clean and professional
 st.markdown("""
-<div class="header-container">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1 class="header-title">🌊 PFAS in the Delaware River Basin</h1>
-    </div>
-    <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-top: 0.5rem;">
-        Interactive Data Visualization & Analysis Tool
-    </p>
+<div class="main-header">
+    <h1>PFAS in the Delaware River Basin</h1>
+    <p>Interactive Data Visualization & Analysis Tool</p>
 </div>
 """, unsafe_allow_html=True)
 
-# SIDEBAR
+# SIDEBAR - Clean controls
 with st.sidebar:
-    st.markdown("### 🔧 Filters & Controls")
+    st.markdown("### Data Filters")
     st.markdown("---")
 
     media_map = {
-        "💧 Surface Water": "Water",
-        "🏞️ Groundwater": "GW",
-        "🪨 Sediment": "Sediment",
-        "🐟 Tissue": "Tissue"
+        "Surface Water": "Water",
+        "Groundwater": "GW",
+        "Sediment": "Sediment",
+        "Tissue": "Tissue"
     }
 
-    dataset = st.selectbox("Media Type:", list(media_map.keys()))
+    dataset = st.selectbox("Media Type", list(media_map.keys()))
     dataset_key = media_map[dataset]
 
-    data_type = st.radio("PFAS Data Type:", ["ΣPFAS", "Compounds", "Groups"])
+    data_type = st.radio("PFAS Data Type", ["ΣPFAS", "Compounds", "Groups"])
     data_type_key = {"ΣPFAS": "all", "Compounds": "raw", "Groups": "grouped"}[data_type]
 
-    agency_filter = st.selectbox("Agency:", ["All"] + agencies)
+    agency_filter = st.selectbox("Agency", ["All"] + agencies)
 
     current_data = all_data[dataset_key][data_type_key].copy()
 
     if data_type == "Compounds":
-        chem_filter = st.selectbox("Compound:",
+        chem_filter = st.selectbox("Compound",
                                    sorted(all_data[dataset_key]['raw']['abbrev'].unique()))
         current_data = current_data[current_data['abbrev'] == chem_filter]
         filter_name = chem_filter
     elif data_type == "Groups":
-        group_filter = st.selectbox("Group:",
+        group_filter = st.selectbox("Group",
                                     sorted(all_data[dataset_key]['grouped']['group'].unique()))
         current_data = current_data[current_data['group'] == group_filter]
         filter_name = group_filter
@@ -309,13 +391,13 @@ with st.sidebar:
 
     if dataset_key == "Tissue" and 'species' in current_data.columns:
         species_list = ["All"] + sorted(current_data['species'].dropna().unique().tolist())
-        species_filter = st.selectbox("Species:", species_list)
+        species_filter = st.selectbox("Species", species_list)
         if species_filter != "All":
             current_data = current_data[current_data['species'] == species_filter]
 
     if 'yr' in current_data.columns and not current_data['yr'].isna().all():
         year_min, year_max = int(current_data['yr'].min()), int(current_data['yr'].max())
-        year_range = st.slider("Years:", year_min, year_max, (year_min, year_max))
+        year_range = st.slider("Years", year_min, year_max, (year_min, year_max))
         current_data = current_data[(current_data['yr'] >= year_range[0]) &
                                     (current_data['yr'] <= year_range[1])]
 
@@ -323,15 +405,16 @@ with st.sidebar:
         current_data = current_data[current_data['agency'] == agency_filter]
 
     st.markdown("---")
+    st.markdown("### Map Options")
 
     mapped_sample = st.selectbox(
-        "Display value:",
+        "Display value",
         ["Most Recent", "Maximum", "Average", "Minimum"],
         help="For locations with multiple years"
     )
 
-    show_huc = st.checkbox("📊 Show HUC12 Averages", value=False)
-    show_rm = st.checkbox("📏 Show River Miles", value=False)
+    show_huc = st.checkbox("Show HUC12 Averages", value=False)
+    show_rm = st.checkbox("Show River Miles", value=False)
 
     st.markdown("---")
     st.markdown("""
@@ -370,13 +453,13 @@ with col4:
 
 st.markdown("---")
 
-# TABS
+# TABS - Clean styling
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🗺️ Map", "📈 Estuary Analysis", "📋 Criteria", "📚 History", "ℹ️ About"
+    "Map", "Estuary Analysis", "EPA Criteria", "History", "About"
 ])
 
 with tab1:
-    st.markdown('<div class="info-box"><h3 style="margin:0;">Interactive Map Visualization</h3><p style="margin:0.5rem 0 0 0;">Explore PFAS concentrations across the Delaware River Basin</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="info-card"><h3>Interactive Map</h3><p>Explore PFAS concentrations across the Delaware River Basin</p></div>', unsafe_allow_html=True)
 
     col_map, col_plots = st.columns([2, 1])
 
@@ -391,7 +474,7 @@ with tab1:
         # Add DRB boundary
         folium.GeoJson(
             spatial_data['drbbnd'],
-            style_function=lambda x: {'color': 'black', 'weight': 2, 'fillOpacity': 0}
+            style_function=lambda x: {'color': '#1a3a52', 'weight': 2, 'fillOpacity': 0}
         ).add_to(m)
 
         # Aggregate data by coordinates
@@ -443,7 +526,7 @@ with tab1:
                 fig.add_trace(go.Histogram(
                     x=vals_pos,
                     nbinsx=25,
-                    marker_color='#5D6B8D',
+                    marker_color='#2e7aaf',
                     name='Concentration'
                 ))
                 fig.update_layout(
@@ -451,7 +534,9 @@ with tab1:
                     yaxis_title="Count",
                     height=300,
                     margin=dict(l=20, r=20, t=30, b=20),
-                    showlegend=False
+                    showlegend=False,
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -477,7 +562,7 @@ with tab1:
                 fig = go.Figure()
                 fig.add_trace(go.Histogram(
                     x=yrs,
-                    marker_color='#3A6B35',
+                    marker_color='#1a3a52',
                     name='Year'
                 ))
                 fig.update_layout(
@@ -485,12 +570,14 @@ with tab1:
                     yaxis_title="Count",
                     height=300,
                     margin=dict(l=20, r=20, t=30, b=20),
-                    showlegend=False
+                    showlegend=False,
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
-    st.markdown('<div class="info-box"><h3 style="margin:0;">Delaware River Estuary Analysis</h3><p style="margin:0.5rem 0 0 0;">PFAS trends along river miles</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="info-card"><h3>Delaware River Estuary Analysis</h3><p>PFAS trends along river miles</p></div>', unsafe_allow_html=True)
 
     if not current_data.empty:
         # Filter points within Delaware River Bay
@@ -519,11 +606,11 @@ with tab2:
 
             # Get unique years and assign colors
             years = sorted(within_bay['yr'].dropna().unique())
-            colors = px.colors.sample_colorscale("Spectral", [i/(len(years)-1) if len(years) > 1 else 0 for i in range(len(years))])
+            colors = px.colors.sample_colorscale("Viridis", [i/(len(years)-1) if len(years) > 1 else 0 for i in range(len(years))])
 
             for i, year in enumerate(years):
                 year_data = within_bay[within_bay['yr'] == year]
-                conc_vals = year_data['conc'].replace(0, np.nan)  # Replace 0 with NaN for log scale
+                conc_vals = year_data['conc'].replace(0, np.nan)
 
                 fig.add_trace(go.Scatter(
                     x=year_data['RM'],
@@ -544,7 +631,9 @@ with tab2:
                 xaxis=dict(autorange="reversed"),
                 height=600,
                 legend_title="Year",
-                hovermode='closest'
+                hovermode='closest',
+                plot_bgcolor='white',
+                paper_bgcolor='white'
             )
 
             st.plotly_chart(fig, use_container_width=True)
@@ -621,16 +710,16 @@ with tab5:
     [https://www.nj.gov/drbc/programs/quality/pfas.html](https://www.nj.gov/drbc/programs/quality/pfas.html)
     """)
 
-# FOOTER
+# FOOTER - Clean and professional
 st.markdown("""
 <div class="footer">
-    <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+    <div class="warning-box">
         ⚠️ <strong>WARNING:</strong> Development of this app is ongoing; information is subject to change.
     </div>
-    <p style="margin-top: 1rem;">
+    <p style="margin-top: 1rem; color: #495057;">
         Development funded by EPA's Section 106 Water Pollution Control Grant Program (I-98339317-3)
     </p>
-    <p style="font-style: italic; margin-top: 0.5rem;">
+    <p style="font-style: italic; margin-top: 0.5rem; color: #6c757d;">
         App Last Modified: January 16, 2026 | Dataset Last Modified: January 12, 2026
     </p>
 </div>
