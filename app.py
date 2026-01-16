@@ -221,25 +221,25 @@ def load_spatial_data():
 # Legend configuration
 LEGEND_CONFIG = {
     'Water': {
-        'breaks': [0, 1, 2, 5, 10, 25, 50, 100, 1000, np.inf],
+        'breaks': [0, 1, 2, 5, 10, 25, 50, 100, 1000, 999999],
         'labels': ["B.D. - 1", ">1 - 2", ">2 - 5", ">5 - 10", ">10 - 25",
                    ">25 - 50", ">50 - 100", ">100 - 1000", ">1000"],
         'colors': ['#440154', '#443983', '#31688e', '#21918c', '#35b779', '#90d743', '#fde724']
     },
     'GW': {
-        'breaks': [0, 1, 2, 5, 10, 25, 50, 100, 1000, np.inf],
+        'breaks': [0, 1, 2, 5, 10, 25, 50, 100, 1000, 999999],
         'labels': ["B.D. - 1", ">1 - 2", ">2 - 5", ">5 - 10", ">10 - 25",
                    ">25 - 50", ">50 - 100", ">100 - 1000", ">1000"],
         'colors': ['#440154', '#443983', '#31688e', '#21918c', '#35b779', '#90d743', '#fde724']
     },
     'Sediment': {
-        'breaks': [0, 0.01, 0.05, 0.10, 0.25, 0.50, 1.00, 2.50, 5.00, np.inf],
+        'breaks': [0, 0.01, 0.05, 0.10, 0.25, 0.50, 1.00, 2.50, 5.00, 999999],
         'labels': ["B.D. - 0.01", ">0.01 - 0.05", ">0.05 - 0.10", ">0.10 - 0.25",
                    ">0.25 - 0.50", ">0.50 - 1.00", ">1.00 - 2.50", ">2.50 - 5.00", ">5.00"],
         'colors': ['#440154', '#443983', '#31688e', '#21918c', '#35b779', '#90d743', '#fde724']
     },
     'Tissue': {
-        'breaks': [0, 0.10, 0.50, 1.00, 5.00, 10.0, 25.0, 50.0, 100.0, np.inf],
+        'breaks': [0, 0.10, 0.50, 1.00, 5.00, 10.0, 25.0, 50.0, 100.0, 999999],
         'labels': ["B.D. - 0.10", ">0.10 - 0.50", ">0.50 - 1.00", ">1.00 - 5.00",
                    ">5.00 - 10.0", ">10.0 - 25.0", ">25.0 - 50.0", ">50.0 - 100.0", ">100.0"],
         'colors': ['#440154', '#443983', '#31688e', '#21918c', '#35b779', '#90d743', '#fde724']
@@ -554,6 +554,11 @@ with tab1:
         # Aggregate data by coordinates
         map_data = aggregate_coords(current_data, mapped_sample)
 
+        # Clean data - remove any rows with invalid values
+        if not map_data.empty:
+            map_data = map_data.replace([np.inf, -np.inf], np.nan)
+            map_data = map_data.dropna(subset=['lat', 'lon', 'conc'])
+
         unit = "ng/g" if dataset_key in ["Sediment", "Tissue"] else "ng/L"
 
         # FEATURE 1: HUC12 POLYGONS
@@ -586,7 +591,7 @@ with tab1:
             huc_with_data['n_samples'] = huc_counts
 
             # Create color scale
-            valid_concs = [c for c in huc_concentrations if not np.isnan(c)]
+            valid_concs = [c for c in huc_concentrations if not np.isnan(c) and np.isfinite(c)]
             if valid_concs:
                 colormap = cm.LinearColormap(
                     colors=['#440154', '#31688e', '#35b779', '#fde724'],
@@ -596,7 +601,7 @@ with tab1:
 
                 # Add HUC12 polygons
                 for idx, row in huc_with_data.iterrows():
-                    if not np.isnan(row['conc']):
+                    if not np.isnan(row['conc']) and np.isfinite(row['conc']):
                         folium.GeoJson(
                             row.geometry,
                             style_function=lambda x, conc=row['conc']: {
