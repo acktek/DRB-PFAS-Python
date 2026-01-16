@@ -1,5 +1,5 @@
 ################################################################################
-#### DELAWARE RIVER BASIN PFAS APP - CLEAN PROFESSIONAL DESIGN
+#### DELAWARE RIVER BASIN PFAS APP - COMPLETE 1:1 PORT
 ################################################################################
 
 import streamlit as st
@@ -13,8 +13,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
 import warnings
+import base64
+from io import BytesIO
 warnings.filterwarnings('ignore')
 from shapely.geometry import Point
+import branca.colormap as cm
 
 # Page configuration
 st.set_page_config(
@@ -27,32 +30,13 @@ st.set_page_config(
 # Clean, professional CSS
 st.markdown("""
 <style>
-    /* Main background - clean white */
-    .main {
-        background-color: #ffffff;
-    }
-
-    /* Sidebar - professional dark blue */
-    [data-testid="stSidebar"] {
-        background-color: #1a3a52;
-    }
-
-    [data-testid="stSidebar"] .stMarkdown {
-        color: #ffffff;
-    }
-
-    /* Make sidebar text readable */
-    [data-testid="stSidebar"] label {
-        color: #ffffff !important;
-    }
-
+    .main { background-color: #ffffff; }
+    [data-testid="stSidebar"] { background-color: #1a3a52; }
+    [data-testid="stSidebar"] .stMarkdown { color: #ffffff; }
+    [data-testid="stSidebar"] label { color: #ffffff !important; }
     [data-testid="stSidebar"] .stSelectbox label,
     [data-testid="stSidebar"] .stRadio label,
-    [data-testid="stSidebar"] .stSlider label {
-        color: #ffffff !important;
-    }
-
-    /* Header styling - clean and professional */
+    [data-testid="stSidebar"] .stSlider label { color: #ffffff !important; }
     .main-header {
         background-color: #1a3a52;
         padding: 2rem 2rem 1.5rem 2rem;
@@ -60,7 +44,6 @@ st.markdown("""
         margin-bottom: 2rem;
         border-left: 5px solid #2e7aaf;
     }
-
     .main-header h1 {
         color: #ffffff;
         font-size: 2.2rem;
@@ -68,34 +51,27 @@ st.markdown("""
         margin: 0;
         letter-spacing: -0.5px;
     }
-
     .main-header p {
         color: #b8d4e8;
         font-size: 1rem;
         margin: 0.5rem 0 0 0;
     }
-
-    /* Metric cards - clean with subtle shadow */
     [data-testid="stMetricValue"] {
         font-size: 1.8rem;
         font-weight: 600;
         color: #1a3a52;
     }
-
     [data-testid="stMetricLabel"] {
         font-size: 0.9rem;
         color: #666666;
         font-weight: 500;
     }
-
-    /* Tab styling - minimal and clean */
     .stTabs [data-baseweb="tab-list"] {
         gap: 4px;
         background-color: #f8f9fa;
         padding: 0.5rem;
         border-radius: 6px;
     }
-
     .stTabs [data-baseweb="tab"] {
         background-color: transparent;
         border-radius: 4px;
@@ -104,13 +80,10 @@ st.markdown("""
         color: #495057;
         border: none;
     }
-
     .stTabs [aria-selected="true"] {
         background-color: #1a3a52;
         color: #ffffff !important;
     }
-
-    /* Info boxes - clean with good contrast */
     .info-card {
         background-color: #f0f7fc;
         border-left: 4px solid #2e7aaf;
@@ -118,21 +91,17 @@ st.markdown("""
         border-radius: 6px;
         margin: 1rem 0;
     }
-
     .info-card h3 {
         color: #1a3a52;
         margin: 0 0 0.5rem 0;
         font-size: 1.3rem;
         font-weight: 600;
     }
-
     .info-card p {
         color: #495057;
         margin: 0;
         line-height: 1.6;
     }
-
-    /* Note boxes */
     .note-box {
         background-color: #fff8e1;
         border-left: 4px solid #ffc107;
@@ -141,12 +110,6 @@ st.markdown("""
         margin: 1rem 0;
         color: #856404;
     }
-
-    .note-box strong {
-        color: #6d5100;
-    }
-
-    /* Warning boxes */
     .warning-box {
         background-color: #fff3cd;
         border: 1px solid #ffc107;
@@ -155,14 +118,6 @@ st.markdown("""
         margin: 1rem 0;
         color: #856404;
     }
-
-    /* Tables - clean styling */
-    .dataframe {
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-    }
-
-    /* Footer - professional */
     .footer {
         background-color: #f8f9fa;
         border-top: 2px solid #1a3a52;
@@ -171,18 +126,6 @@ st.markdown("""
         margin-top: 3rem;
         text-align: center;
         color: #495057;
-    }
-
-    /* Better spacing */
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-
-    /* Plotly chart containers */
-    .js-plotly-plot {
-        border-radius: 6px;
-        border: 1px solid #e9ecef;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -313,6 +256,132 @@ def get_color_for_concentration(conc, dataset_key):
             return colors[min(i, len(colors) - 1)]
     return colors[-1]
 
+def get_marker_radius(conc, dataset_key):
+    """Get marker radius based on concentration"""
+    breaks = LEGEND_CONFIG[dataset_key]['breaks']
+
+    for i in range(len(breaks) - 1):
+        if conc >= breaks[i] and conc < breaks[i + 1]:
+            # Map to radius 3-12
+            return 3 + (i * 1.2)
+    return 12
+
+def create_pie_chart_svg(compound_data, group_data):
+    """Create SVG pie charts for compound and group breakdown"""
+
+    def make_pie_svg(data, label_col):
+        if data.empty:
+            return ""
+
+        # Calculate fractions
+        total = data['conc'].sum()
+        if total == 0:
+            return ""
+
+        data = data.copy()
+        data['frac'] = data['conc'] / total
+        data = data[data['frac'] >= 0.01]  # Only show >= 1%
+
+        # Generate colors
+        n = len(data)
+        colors = px.colors.sample_colorscale("Portland", [i/(n-1) if n > 1 else 0 for i in range(n)])
+
+        # SVG pie chart
+        svg_parts = ['<svg width="140" height="140" viewBox="0 0 140 140">']
+
+        start_angle = 0
+        for idx, row in data.iterrows():
+            angle = row['frac'] * 360
+            end_angle = start_angle + angle
+
+            # Calculate path
+            large_arc = 1 if angle > 180 else 0
+            start_rad = np.radians(start_angle - 90)
+            end_rad = np.radians(end_angle - 90)
+
+            x1 = 70 + 50 * np.cos(start_rad)
+            y1 = 70 + 50 * np.sin(start_rad)
+            x2 = 70 + 50 * np.cos(end_rad)
+            y2 = 70 + 50 * np.sin(end_rad)
+
+            path = f'M 70,70 L {x1},{y1} A 50,50 0 {large_arc},1 {x2},{y2} Z'
+            svg_parts.append(f'<path d="{path}" fill="{colors[idx % len(colors)]}" stroke="white" stroke-width="1"/>')
+
+            # Label
+            mid_angle = start_angle + angle/2
+            mid_rad = np.radians(mid_angle - 90)
+            label_x = 70 + 30 * np.cos(mid_rad)
+            label_y = 70 + 30 * np.sin(mid_rad)
+
+            label_text = f"{row[label_col]} ({row['frac']*100:.0f}%)"
+            svg_parts.append(f'<text x="{label_x}" y="{label_y}" font-size="8" text-anchor="middle" fill="black">{label_text}</text>')
+
+            start_angle = end_angle
+
+        svg_parts.append('</svg>')
+        return ''.join(svg_parts)
+
+    compound_svg = make_pie_svg(compound_data, 'abbrev')
+    group_svg = make_pie_svg(group_data, 'group')
+
+    if not compound_svg and not group_svg:
+        return ""
+
+    return f"""
+    <div style="width: 300px;">
+        <div><b>By Compound:</b><br>{compound_svg}</div>
+        <div style="margin-top:10px;"><b>By Group:</b><br>{group_svg}</div>
+    </div>
+    """
+
+def create_detailed_popup(lat, lon, full_data, data_type, dataset_key, filter_name):
+    """Create detailed popup with all sample information"""
+
+    # Get all data for this location
+    loc_data = full_data[(full_data['lat'] == lat) & (full_data['lon'] == lon)].copy()
+
+    if loc_data.empty:
+        return "<p>No data</p>"
+
+    unit = "ng/g" if dataset_key in ["Sediment", "Tissue"] else "ng/L"
+
+    # Sort by year
+    loc_data = loc_data.sort_values('yr')
+
+    # Header
+    html_parts = [f"<div style='font-family: Arial; max-width: 350px; max-height: 400px; overflow-y: auto;'>"]
+    html_parts.append(f"<b>{filter_name}</b><br>")
+    html_parts.append(f"<b>Location:</b> {loc_data.iloc[0].get('loc', 'Unknown')}<br>")
+    html_parts.append("<hr>")
+
+    # If ΣPFAS, show pie charts
+    if data_type == "all":
+        # Get compound and group breakdown
+        compound_data = loc_data.groupby('abbrev')['conc'].mean().reset_index() if 'abbrev' in loc_data.columns else pd.DataFrame()
+        group_data = loc_data.groupby('group')['conc'].mean().reset_index() if 'group' in loc_data.columns else pd.DataFrame()
+
+        pie_html = create_pie_chart_svg(compound_data, group_data)
+        if pie_html:
+            html_parts.append(pie_html)
+            html_parts.append("<hr>")
+
+    # Sample table
+    html_parts.append("<table style='width:100%; font-size:12px;'>")
+    html_parts.append("<tr><th>Agency</th><th>Year</th><th>Conc</th></tr>")
+
+    for _, row in loc_data.iterrows():
+        conc = row['conc']
+        conc_text = "B.D." if conc == 0 else f"{conc:.2f}"
+        yr_text = int(row['yr']) if pd.notna(row['yr']) else 'N/A'
+        agency = row.get('agency', 'N/A')
+
+        html_parts.append(f"<tr><td>{agency}</td><td>{yr_text}</td><td>{conc_text} {unit}</td></tr>")
+
+    html_parts.append("</table>")
+    html_parts.append("</div>")
+
+    return ''.join(html_parts)
+
 def aggregate_coords(df, method="Most Recent"):
     """Aggregate data by coordinates"""
     if df.empty:
@@ -346,7 +415,7 @@ agencies = sorted(set().union(*[
     for media in all_data.keys()
 ]))
 
-# HEADER - Clean and professional
+# HEADER
 st.markdown("""
 <div class="main-header">
     <h1>PFAS in the Delaware River Basin</h1>
@@ -354,7 +423,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# SIDEBAR - Clean controls
+# SIDEBAR
 with st.sidebar:
     st.markdown("### Data Filters")
     st.markdown("---")
@@ -375,6 +444,7 @@ with st.sidebar:
     agency_filter = st.selectbox("Agency", ["All"] + agencies)
 
     current_data = all_data[dataset_key][data_type_key].copy()
+    full_data_for_popups = all_data[dataset_key][data_type_key].copy()  # Keep for popups
 
     if data_type == "Compounds":
         chem_filter = st.selectbox("Compound",
@@ -394,15 +464,19 @@ with st.sidebar:
         species_filter = st.selectbox("Species", species_list)
         if species_filter != "All":
             current_data = current_data[current_data['species'] == species_filter]
+            full_data_for_popups = full_data_for_popups[full_data_for_popups['species'] == species_filter]
 
     if 'yr' in current_data.columns and not current_data['yr'].isna().all():
         year_min, year_max = int(current_data['yr'].min()), int(current_data['yr'].max())
         year_range = st.slider("Years", year_min, year_max, (year_min, year_max))
         current_data = current_data[(current_data['yr'] >= year_range[0]) &
                                     (current_data['yr'] <= year_range[1])]
+        full_data_for_popups = full_data_for_popups[(full_data_for_popups['yr'] >= year_range[0]) &
+                                                      (full_data_for_popups['yr'] <= year_range[1])]
 
     if agency_filter != "All":
         current_data = current_data[current_data['agency'] == agency_filter]
+        full_data_for_popups = full_data_for_popups[full_data_for_popups['agency'] == agency_filter]
 
     st.markdown("---")
     st.markdown("### Map Options")
@@ -413,7 +487,7 @@ with st.sidebar:
         help="For locations with multiple years"
     )
 
-    show_huc = st.checkbox("Show HUC12 Averages", value=False)
+    show_huc = st.checkbox("Show HUC12 Averages (based on value displayed)", value=False)
     show_rm = st.checkbox("Show River Miles", value=False)
 
     st.markdown("---")
@@ -453,7 +527,7 @@ with col4:
 
 st.markdown("---")
 
-# TABS - Clean styling
+# TABS
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Map", "Estuary Analysis", "EPA Criteria", "History", "About"
 ])
@@ -480,34 +554,112 @@ with tab1:
         # Aggregate data by coordinates
         map_data = aggregate_coords(current_data, mapped_sample)
 
-        # Add markers
         unit = "ng/g" if dataset_key in ["Sediment", "Tissue"] else "ng/L"
 
+        # FEATURE 1: HUC12 POLYGONS
+        if show_huc and not map_data.empty:
+            # Convert to GeoDataFrame
+            pts_gdf = gpd.GeoDataFrame(
+                map_data,
+                geometry=[Point(xy) for xy in zip(map_data['lon'], map_data['lat'])],
+                crs="EPSG:4326"
+            )
+
+            # Spatial join to assign concentrations to HUC12s
+            huc_with_data = spatial_data['huc'].copy()
+
+            # For each HUC, find intersecting points and calculate average
+            huc_concentrations = []
+            huc_counts = []
+
+            for idx, huc_poly in huc_with_data.iterrows():
+                pts_in_huc = pts_gdf[pts_gdf.geometry.within(huc_poly.geometry)]
+                if len(pts_in_huc) > 0:
+                    avg_conc = pts_in_huc['conc'].mean()
+                    huc_concentrations.append(avg_conc)
+                    huc_counts.append(len(pts_in_huc))
+                else:
+                    huc_concentrations.append(np.nan)
+                    huc_counts.append(0)
+
+            huc_with_data['conc'] = huc_concentrations
+            huc_with_data['n_samples'] = huc_counts
+
+            # Create color scale
+            valid_concs = [c for c in huc_concentrations if not np.isnan(c)]
+            if valid_concs:
+                colormap = cm.LinearColormap(
+                    colors=['#440154', '#31688e', '#35b779', '#fde724'],
+                    vmin=min(valid_concs),
+                    vmax=max(valid_concs)
+                )
+
+                # Add HUC12 polygons
+                for idx, row in huc_with_data.iterrows():
+                    if not np.isnan(row['conc']):
+                        folium.GeoJson(
+                            row.geometry,
+                            style_function=lambda x, conc=row['conc']: {
+                                'fillColor': colormap(conc),
+                                'color': 'grey',
+                                'weight': 1,
+                                'fillOpacity': 0.5
+                            },
+                            popup=folium.Popup(f"""
+                                <b>HUC12:</b> {row.get('HU_12_NAME', 'Unknown')}<br>
+                                <b>Avg Conc:</b> {row['conc']:.2f} {unit}<br>
+                                <b># Locations:</b> {row['n_samples']}<br>
+                                <b>Area (sq mi):</b> {row.get('SQMI', 'N/A')}
+                            """, max_width=250)
+                        ).add_to(m)
+
+        # FEATURE 2: RIVER MILE LABELS
+        if show_rm:
+            # Add river mile labels for whole numbers
+            rm_whole = spatial_data['rm'][spatial_data['rm']['RM'] == spatial_data['rm']['RM'].astype(int)]
+
+            for idx, row in rm_whole.iterrows():
+                coords = row.geometry.coords[0]
+                folium.Marker(
+                    location=[coords[1], coords[0]],
+                    icon=folium.DivIcon(html=f"""
+                        <div style="
+                            font-size: 10px;
+                            font-weight: bold;
+                            color: #1a3a52;
+                            text-shadow: 1px 1px 2px white;
+                            background: rgba(255,255,255,0.7);
+                            padding: 2px 4px;
+                            border-radius: 3px;
+                        ">{int(row['RM'])}</div>
+                    """)
+                ).add_to(m)
+
+        # FEATURE 3 & 4: VARIABLE MARKER SIZES + DETAILED POPUPS
         for idx, row in map_data.iterrows():
             if pd.notna(row['lat']) and pd.notna(row['lon']):
                 conc = row['conc']
                 color = get_color_for_concentration(conc, dataset_key)
+                radius = get_marker_radius(conc, dataset_key)
 
-                conc_text = "B.D." if conc == 0 else f"{conc:.2f} {unit}"
-
-                popup_html = f"""
-                <div style="font-family: Arial; width: 200px;">
-                    <b>{filter_name}</b><br>
-                    <b>Concentration:</b> {conc_text}<br>
-                    <b>Agency:</b> {row.get('agency', 'N/A')}<br>
-                    <b>Year:</b> {int(row.get('yr', 0)) if pd.notna(row.get('yr')) else 'N/A'}
-                </div>
-                """
+                # Create detailed popup
+                popup_html = create_detailed_popup(
+                    row['lat'], row['lon'],
+                    full_data_for_popups,
+                    data_type_key,
+                    dataset_key,
+                    filter_name
+                )
 
                 folium.CircleMarker(
                     location=[row['lat'], row['lon']],
-                    radius=8,
-                    popup=folium.Popup(popup_html, max_width=250),
+                    radius=radius,
+                    popup=folium.Popup(popup_html, max_width=400),
                     color=color,
                     fill=True,
                     fillColor=color,
                     fillOpacity=0.7,
-                    weight=0
+                    weight=1
                 ).add_to(m)
 
         # Display map
@@ -606,7 +758,7 @@ with tab2:
 
             # Get unique years and assign colors
             years = sorted(within_bay['yr'].dropna().unique())
-            colors = px.colors.sample_colorscale("Viridis", [i/(len(years)-1) if len(years) > 1 else 0 for i in range(len(years))])
+            colors = px.colors.sample_colorscale("Spectral", [i/(len(years)-1) if len(years) > 1 else 0 for i in range(len(years))])
 
             for i, year in enumerate(years):
                 year_data = within_bay[within_bay['yr'] == year]
@@ -710,7 +862,7 @@ with tab5:
     [https://www.nj.gov/drbc/programs/quality/pfas.html](https://www.nj.gov/drbc/programs/quality/pfas.html)
     """)
 
-# FOOTER - Clean and professional
+# FOOTER
 st.markdown("""
 <div class="footer">
     <div class="warning-box">
